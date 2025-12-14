@@ -83,3 +83,20 @@ class TwilioClient:
             print(
                 f"Error sending message (TwilioClient.send_message({customer=}, {template_name=}, template_variables={json.dumps(template_variables)})): {e}"
             )
+
+    def close_active_conversations(self, customer: Customer) -> None:
+        try:
+            for c in self.client.conversations.v1.participant_conversations.list(
+                address=customer.phone_number
+            ):
+                sid = c.conversation_sid
+                state = c.conversation_state
+
+                if not sid or state != "active":
+                    continue
+
+                self.client.conversations.v1.conversations(sid).update(state="closed")
+        except Exception as e:
+            print(
+                f"Error closing active conversations (TwilioClient.close_active_conversations({customer=})): {e}"
+            )

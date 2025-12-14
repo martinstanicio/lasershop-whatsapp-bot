@@ -47,3 +47,8 @@ class TwilioClient:
                 f"Error retrieving conversations (TwilioClient.get_customer_conversations({customer=})): {e}"
             )
             return []
+
+    def has_active_conversations(self, customer: Customer) -> bool:
+        conversations = self.get_customer_conversations(customer)
+
+        return any(map(lambda c: c.state == "active", conversations))

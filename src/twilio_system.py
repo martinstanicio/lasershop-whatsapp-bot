@@ -1,3 +1,4 @@
+import json
 from typing import get_args
 
 import twilio.rest
@@ -7,8 +8,15 @@ from .customer import Customer
 
 
 class TwilioClient:
-    def __init__(self, account_sid: str, auth_token: str, templates: dict[str, str]):
+    def __init__(
+        self,
+        account_sid: str,
+        auth_token: str,
+        phone_number: str,
+        templates: dict[str, str],
+    ):
         self.client = twilio.rest.Client(account_sid, auth_token)
+        self.phone_number = phone_number
         self.templates = templates
 
     def get_customer_conversations(self, customer: Customer) -> list[Conversation]:
@@ -52,3 +60,26 @@ class TwilioClient:
         conversations = self.get_customer_conversations(customer)
 
         return any(map(lambda c: c.state == "active", conversations))
+
+    def send_message(
+        self, customer: Customer, template_name: str, template_variables: dict[str, str]
+    ) -> None:
+        if template_name not in self.templates:
+            print(
+                f"Error retrieving template_id (TwilioClient.send_message({customer=}, {template_name=}, template_variables={json.dumps(template_variables)})): {template_name} not in templates"
+            )
+            return
+
+        template_id = self.templates.get(template_name, "")
+
+        try:
+            self.client.messages.create(
+                from_=self.phone_number,
+                to=customer.phone_number,
+                content_sid=template_id,
+                content_variables=json.dumps(template_variables),
+            )
+        except Exception as e:
+            print(
+                f"Error sending message (TwilioClient.send_message({customer=}, {template_name=}, template_variables={json.dumps(template_variables)})): {e}"
+            )
